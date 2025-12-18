@@ -8,7 +8,7 @@ function App() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('http://localhost:3001', { method: "GET", credentials: 'include' });
+        const res = await fetch('http://localhost:3001/data', { method: "GET", credentials: 'include' });
         const data = await res.json();
         
         setTimeout(() => {

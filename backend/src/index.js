@@ -8,6 +8,8 @@ app.use(cors({
   origin : 'http://localhost:5173'
 }))
 
+app.use(express.static('public'))
+
 const payload = {
   name : "Sanjay Gehlot",
   github : "https://github.com/Sanjaygehlot1",
@@ -19,7 +21,8 @@ const payload = {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Backend is healthy' });
 });
-app.get('/', (req, res) => {
+
+app.get('/data', (req, res) => {
   res.json(payload);
 });
 
