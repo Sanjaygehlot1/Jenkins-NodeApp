@@ -39,6 +39,12 @@ steps{
         
 
         stage("Build and push Docker Image"){
+             agent {
+        docker {
+            image 'docker:26'
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
             
             steps{
                 echo "Building Docker Image..."
