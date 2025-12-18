@@ -3,12 +3,15 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node src/test.js",
+    "start": "node src/index.js"
   },
   "author": "Sanjay Gehlot",
   "license": "ISC",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^5.2.1"
   }
 }
