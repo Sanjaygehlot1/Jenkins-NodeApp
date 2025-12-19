@@ -1,67 +1,84 @@
-def IMAGE = "demo-app"
-def TAG = "1.0"
-
 pipeline {
     agent any
+
     tools {
         nodejs 'node22'
     }
 
+    environment{
+        IMAGE_NAME = "demo-app"
+        IMAGE_TAG = "1.1"
+    }
 
     stages {
-        stage("Build and Test"){
-            parallel{
-                stage("Frontend"){
-                    steps{
-                        dir('frontend'){
-                        echo "Building and testing frontend..."
-                        sh 'npm ci'
-                        sh 'npm run build'
-                        sh 'npm run test'
+
+        stage('Build and Test') {
+            parallel {
+
+                stage('Frontend') {
+                    steps {
+                        dir('frontend') {
+                            sh 'npm ci'
+                            sh 'npm run build'
+                            sh 'npm run test'
                         }
                     }
                 }
 
-                stage("Backend"){
-                    steps{
-                        dir('backend'){
-                        echo 'Building and testing backend...'
-                        sh 'npm ci'
-                        sh 'npm run test'
+                stage('Backend') {
+                    steps {
+                        dir('backend') {
+                            sh 'npm ci'
+                            sh 'npm run test'
                         }
                     }
                 }
             }
-          
         }
-            
-        stage("Build and push Docker Image"){
-            agent {
-                docker {
-                    image 'docker:26-cli'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock'
-                }
-            }   
-            
-            steps{
-                echo "Building Docker Image..."
+
+        stage('Build and Push Docker Image') {
+            steps {
                 withCredentials([
-                    usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD') 
+                    usernamePassword(
+                        credentialsId: 'docker-cred',
+                        usernameVariable: 'USERNAME',
+                        passwordVariable: 'PASSWORD'
+                    )
                 ]){
-                    sh "echo ${PASSWORD} | docker login -u ${USERNAME} --password-stdin"
-                    sh "docker build -t ${USERNAME}/${IMAGE}:${TAG} ."
-                    echo 'pushing docker image...'
-                    sh "docker push ${USERNAME}/${IMAGE}:${TAG}"
+                    sh '''
+                        docker --version
+                        echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin
+                        docker build -t $USERNAME/$IMAGE_NAME:$IMAGE_TAG .
+                        docker push $USERNAME/$IMAGE_NAME:$IMAGE_TAG
+                    '''
                 }
-                
             }
+        }
+        stage('connect to AWS EC2 instance and deploy'){
+          steps{
+              withCredentials([
+                usernamePassword(
+                    credentialsId: 'docker-cred',
+                    usernameVariable: 'USERNAME',
+                    passwordVariable: 'PASSWORD'
+                )
+            ]){
+                sshagent(credentials: ['ec2-ssh-key']){
+                    sh '''
+ssh -o StrictHostKeyChecking=no ec2-user@ec2-54-198-167-13.compute-1.amazonaws.com << EOF
+echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin 
+docker pull  $USERNAME/$IMAGE_NAME:$IMAGE_TAG
+docker stop demo-app || true
+docker rm demo-app || true
+docker run -d -p 3001:3001 --name demo-app $USERNAME/$IMAGE_NAME:$IMAGE_TAG
+EOF
+'''
+                }
+            } 
+          }
+            
         }
 
-        stage("Deploy"){
-            steps{
-                echo 'deploying to server...'
-            }
-        }
-        
+       
     }
 }
