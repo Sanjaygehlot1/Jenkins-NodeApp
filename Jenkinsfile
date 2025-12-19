@@ -5,7 +5,6 @@ pipeline {
     agent any
     tools {
         nodejs 'node22'
-        docker 'docker'
     }
 
 
@@ -37,7 +36,12 @@ pipeline {
         }
             
         stage("Build and push Docker Image"){
-          
+            agent {
+                docker {
+                    image 'docker:26-cli'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }   
             
             steps{
                 echo "Building Docker Image..."
